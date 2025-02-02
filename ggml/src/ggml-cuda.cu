@@ -204,6 +204,7 @@ static ggml_cuda_device_info ggml_cuda_init() {
 
         info.default_tensor_split[id] = total_vram;
         total_vram += prop.totalGlobalMem;
+        info.devices[id].total_vram = prop.totalGlobalMem;
 
         info.devices[id].nsm   = prop.multiProcessorCount;
         info.devices[id].smpb  = prop.sharedMemPerBlock;
@@ -3021,13 +3022,22 @@ static ggml_guid_t ggml_backend_cuda_guid() {
     return &guid;
 }
 
-GGML_CALL ggml_backend_t ggml_backend_cuda_init(int device) {
-    if (device < 0 || device >= ggml_backend_cuda_get_device_count()) {
+static int currentDeviceIndex;
+
+GGML_CALL ggml_backend_t ggml_backend_cuda_init(int device_) {
+    /*if (device < 0 || device >= ggml_backend_cuda_get_device_count()) {
         GGML_CUDA_LOG_ERROR("%s: invalid device %d\n", __func__, device);
         return nullptr;
+    }*/
+
+    currentDeviceIndex = 0;
+
+    for (int device = 0; device < ggml_backend_cuda_get_device_count(); ++device) {
+        if (ggml_cuda_info().devices[device].total_vram > ggml_cuda_info().devices[currentDeviceIndex].total_vram)
+            currentDeviceIndex = device;
     }
 
-    ggml_backend_cuda_context * ctx = new ggml_backend_cuda_context(device);
+    ggml_backend_cuda_context * ctx = new ggml_backend_cuda_context(currentDeviceIndex);
     if (ctx == nullptr) {
         GGML_CUDA_LOG_ERROR("%s: failed to allocate context\n", __func__);
         return nullptr;
@@ -3060,6 +3070,10 @@ GGML_CALL void ggml_backend_cuda_get_device_memory(int device, size_t * free, si
     ggml_cuda_set_device(device);
 
     CUDA_CHECK(cudaMemGetInfo(free, total));
+}
+
+GGML_CALL int ggml_backend_cuda_get_device_index(void) {
+    return currentDeviceIndex;
 }
 
 GGML_CALL bool ggml_backend_cuda_register_host_buffer(void * buffer, size_t size) {

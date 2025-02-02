@@ -693,6 +693,8 @@ inline std::string LOG_BATCH_TOSTR_PRETTY(const C & ctx, const B & batch)
     return buf.str();
 }
 
+#define LOG_DISABLE_LOGS
+
 #ifdef LOG_DISABLE_LOGS
 
 #undef LOG

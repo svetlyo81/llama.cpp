@@ -6750,6 +6750,16 @@ GGML_CALL void ggml_backend_vk_get_device_memory(int device, size_t * free, size
     }
 }
 
+GGML_CALL int ggml_backend_vk_get_device_type(int device) {
+    GGML_ASSERT(device < (int)vk_instance.device_indices.size());
+
+    vk::PhysicalDevice vkdev = vk_instance.instance.enumeratePhysicalDevices()[vk_instance.device_indices[device]];
+
+    vk::PhysicalDeviceProperties2 new_props;
+    vkdev.getProperties2(&new_props);
+    return (int)new_props.properties.deviceType;
+}
+
 // backend registry
 GGML_CALL static ggml_backend_t ggml_backend_reg_vk_init(const char * params, void * user_data) {
     ggml_backend_t vk_backend = ggml_backend_vk_init((int) (intptr_t) user_data);
